@@ -7,7 +7,8 @@ app.use(express.json());
 app.use(express.static('public'));
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Підключено до MongoDB!'))
+  .then(() => {})
+  // .then(() => console.log('Підключено до MongoDB!'))
   .catch(err => console.error(err));
 
 // --- ПЕРСОНАЖІ ---
@@ -160,4 +161,5 @@ app.post('/api/watches', async (req, res) => {
 });
 
 
-app.listen(3000, () => console.log('Сайт працює на http://localhost:3000'));
+app.listen(3000, () => {});
+// app.listen(3000, () => console.log('Сайт працює на http://localhost:3000'));
