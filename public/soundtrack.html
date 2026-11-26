@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Саундтрек — Клан Сопрано</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link">Локації</a></li>
+          <li><a href="cars.html" class="nav-link">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link active">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="tree-header">
+    <h1>Саундтрек клану Сопрано</h1>
+    <p class="section-subtitle">
+      Музика у «Клані Сопрано» — це окремий повноцінний персонаж, який задає настрій кожній сцені. Від культової заставки «Woke Up This Morning» до ретельно підібраних фінальних треків у титрах.
+    </p>
+    
+    <!-- Фільтр композицій -->
+    <div class="tree-switcher">
+      <button class="switch-btn active" data-category="all">Усі треки</button>
+      <button class="switch-btn" data-category="theme">Заставка і фінали</button>
+      <button class="switch-btn" data-category="scenes">Культові сцени</button>
+      <button class="switch-btn" data-category="italian">Італійська класика</button>
+    </div>
+  </div>
+
+  <div id="soundtrack-container" class="soundtrack-grid"></div>
+
+  <script>
+    let allTracks = [];
+
+    async function loadSoundtrack() {
+      try {
+        const response = await fetch('/api/soundtrack');
+        allTracks = await response.json();
+        renderTracks('all');
+      } catch (error) {
+        console.error('Помилка завантаження саундтреку:', error);
+      }
+    }
+
+    function renderTracks(category) {
+      const container = document.getElementById('soundtrack-container');
+      container.innerHTML = '';
+
+      const filtered = category === 'all' 
+        ? allTracks 
+        : allTracks.filter(track => track.category === category);
+
+      filtered.forEach(track => {
+        const listenBtnHtml = track.listen_url
+          ? `<a href="${track.listen_url}" target="_blank" rel="noopener noreferrer" class="watch-btn">♫ Слухати трек</a>`
+          : '';
+
+        container.innerHTML += `
+          <div class="track-card">
+            <div class="track-top">
+              <img 
+                src="${track.cover}" 
+                alt="${track.title}" 
+                class="track-cover"
+                onerror="this.src='https://via.placeholder.com/100x100?text=OST'"
+              >
+              <div class="track-meta">
+                <h2>${track.title}</h2>
+                <span class="track-artist">${track.artist}</span>
+                <span class="track-episode">${track.episode}</span>
+              </div>
+            </div>
+            
+            <div class="track-body">
+              <p class="track-desc">${track.description}</p>
+              ${listenBtnHtml}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Перемикання фільтрів
+    document.querySelectorAll('.switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTracks(btn.getAttribute('data-category'));
+      });
+    });
+
+    loadSoundtrack();
+  </script>
+
+  <footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span> 
+      </a>   
+        <p class="footer-note">
+        Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+      </p>
+    </div>
+
+    <nav class="footer-nav" aria-label="Навігація у підвалі">
+      <a href="index.html">Головна</a>
+      <a href="tree.html">Дерево</a>
+      <a href="seasons.html">Сезони</a>
+      <a href="locations.html">Локації</a>
+      <a href="cars.html">Автопарк</a>
+      <a href="soundtrack.html">Саундтрек</a>
+      <a href="watches.html">Гардероб</a>
+    </nav>
+
+    <div class="footer-bottom">
+      <span>© 2026 Sopranos Archive</span>
+      <a href="#top" class="back-to-top">↑ Вгору</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

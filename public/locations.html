@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Локації — Клан Сопрано</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link active">Локації</a></li>
+          <li><a href="cars.html" class="nav-link">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="tree-header">
+    <h1>Культові локації Нью-Джерсі</h1>
+    
+    <!-- Фільтр локацій за типом -->
+    <div class="tree-switcher">
+      <button class="switch-btn active" data-category="all">Усі місця</button>
+      <button class="switch-btn" data-category="business">Бізнес і бази</button>
+      <button class="switch-btn" data-category="food">Ресторани</button>
+      <button class="switch-btn" data-category="home">Житло та інше</button>
+    </div>
+  </div>
+
+  <div id="locations-container" class="locations-grid"></div>
+
+    <script>
+    let allLocations = [];
+    let sliderIntervals = []; // Зберігаємо таймери, щоб очищати їх при фільтрації
+
+    async function loadLocations() {
+      try {
+        const response = await fetch('/api/locations');
+        allLocations = await response.json();
+        renderLocations('all');
+      } catch (error) {
+        console.error('Помилка завантаження локацій:', error);
+      }
+    }
+
+    function renderLocations(category) {
+      const container = document.getElementById('locations-container');
+      
+      // Зупиняємо попередні таймери автоперемикання перед перемальовкою
+      sliderIntervals.forEach(clearInterval);
+      sliderIntervals = [];
+      container.innerHTML = '';
+
+      const filtered = category === 'all' 
+        ? allLocations 
+        : allLocations.filter(loc => loc.category === category);
+
+      filtered.forEach(loc => {
+        const mapBtnHtml = loc.map_url
+          ? `<a href="${loc.map_url}" target="_blank" rel="noopener noreferrer" class="watch-btn">⌖ На карті</a>`
+          : '';
+
+        // Підтримуємо масив loc.photos АБО одиночне поле loc.photo
+        const photos = (Array.isArray(loc.photos) && loc.photos.length > 0)
+          ? loc.photos
+          : [loc.photo];
+
+        const hasMultiple = photos.length > 1;
+
+        const slidesHtml = photos.map((src, idx) => `
+          <img 
+            src="${src}" 
+            alt="${loc.name} — фото ${idx + 1}" 
+            class="location-photo"
+            onerror="this.src='https://via.placeholder.com/400x220?text=No+Location+Photo'"
+          >
+        `).join('');
+
+        const controlsHtml = hasMultiple ? `
+          <button type="button" class="slider-arrow prev" aria-label="Попереднє фото">‹</button>
+          <button type="button" class="slider-arrow next" aria-label="Наступне фото">›</button>
+          <div class="slider-dots">
+            ${photos.map((_, idx) => `<button type="button" class="slider-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Фото ${idx + 1}"></button>`).join('')}
+          </div>
+        ` : '';
+
+        const card = document.createElement('div');
+        card.className = 'location-card';
+        card.innerHTML = `
+          <div class="location-slider">
+            <div class="location-slides">
+              ${slidesHtml}
+            </div>
+            ${controlsHtml}
+          </div>
+          <div class="location-info">
+            <h2>${loc.name}</h2>
+            <span class="real-address">${loc.real_name}</span>
+            <p class="location-desc">${loc.description}</p>
+            ${mapBtnHtml}
+          </div>
+        `;
+
+        container.appendChild(card);
+
+        // Якщо фотографій більше однієї — ініціалізуємо слайдер
+        if (hasMultiple) {
+          initSlider(card, photos.length);
+        }
+      });
+    }
+
+    function initSlider(card, totalSlides) {
+      const slider = card.querySelector('.location-slider');
+      const track = card.querySelector('.location-slides');
+      const prevBtn = card.querySelector('.prev');
+      const nextBtn = card.querySelector('.next');
+      const dots = card.querySelectorAll('.slider-dot');
+
+      let currentIndex = 0;
+      let startX = 0;
+      let isDragging = false;
+
+      function goToSlide(index) {
+        currentIndex = (index + totalSlides) % totalSlides;
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === currentIndex);
+        });
+      }
+
+      // Автоматичне перемикання кожні 4000 мс (4 секунди)
+      let timer = setInterval(() => goToSlide(currentIndex + 1), 4000);
+      sliderIntervals.push(timer);
+
+      function resetTimer() {
+        clearInterval(timer);
+        timer = setInterval(() => goToSlide(currentIndex + 1), 4000);
+        sliderIntervals.push(timer);
+      }
+
+      // Пауза при наведенні миші на картку
+      card.addEventListener('mouseenter', () => clearInterval(timer));
+      card.addEventListener('mouseleave', resetTimer);
+
+      // Кліки по стрілочках
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToSlide(currentIndex - 1);
+        resetTimer();
+      });
+
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToSlide(currentIndex + 1);
+        resetTimer();
+      });
+
+      // Кліки по крапках
+      dots.forEach(dot => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          goToSlide(Number(dot.dataset.index));
+          resetTimer();
+        });
+      });
+
+      // Підтримка свайпу (Pointer Events працює і для тачскрінів, і для миші)
+      slider.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button')) return;
+        startX = e.clientX;
+        isDragging = true;
+        clearInterval(timer);
+      });
+
+      slider.addEventListener('pointerup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const diffX = e.clientX - startX;
+
+        if (Math.abs(diffX) > 40) { // Поріг свайпу 40px
+          if (diffX < 0) {
+            goToSlide(currentIndex + 1); // Свайп вліво -> наступне фото
+          } else {
+            goToSlide(currentIndex - 1); // Свайп вправо -> попереднє фото
+          }
+        }
+        resetTimer();
+      });
+
+      slider.addEventListener('pointercancel', () => {
+        isDragging = false;
+        resetTimer();
+      });
+    }
+
+    // Перемикання фільтрів
+    document.querySelectorAll('.switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderLocations(btn.getAttribute('data-category'));
+      });
+    });
+
+    loadLocations();
+  </script>
+  <footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span> 
+      </a>   
+        <p class="footer-note">
+        Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+      </p>
+    </div>
+
+    <nav class="footer-nav" aria-label="Навігація у підвалі">
+      <a href="index.html">Головна</a>
+      <a href="tree.html">Дерево</a>
+      <a href="seasons.html">Сезони</a>
+      <a href="locations.html">Локації</a>
+      <a href="cars.html">Автопарк</a>
+      <a href="soundtrack.html">Саундтрек</a>
+      <a href="watches.html">Гардероб</a>
+    </nav>
+
+    <div class="footer-bottom">
+      <span>© 2026 Sopranos Archive</span>
+      <a href="#top" class="back-to-top">↑ Вгору</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

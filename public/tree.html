@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дерево Сопрано</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link active">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link">Локації</a></li>
+          <li><a href="cars.html" class="nav-link">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ЗАГОЛОВОК ТА ПЕРЕМИКАЧ -->
+  <div class="tree-header">
+    <h1 id="tree-title">Родинне дерево сім'ї Сопрано</h1>
+    
+    <div class="tree-switcher">
+      <button class="switch-btn active" data-type="family">Родинне дерево</button>
+      <button class="switch-btn" data-type="crime">Кримінальна сім'я ДіМео</button>
+    </div>
+  </div>
+
+  <div id="tree-container"></div>
+
+  <!-- МОДАЛЬНЕ ВІКНО ПРО АКТОРА -->
+  <div class="actor-modal" id="actorModal" aria-hidden="true">
+    <div class="actor-modal-backdrop" data-close-modal></div>
+    <div class="actor-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="actorModalTitle">
+      <button type="button" class="actor-modal-close" aria-label="Закрити вікно" data-close-modal>&times;</button>
+      <span class="actor-modal-label">АКТОР / ВИКОНАВЕЦЬ РОЛІ</span>
+      <img id="actorModalPhoto" class="actor-modal-photo" src="" alt="" style="display: none;">
+      <h2 id="actorModalTitle"></h2>
+      <p class="actor-modal-character" id="actorModalCharacter"></p>
+      <p class="actor-modal-bio" id="actorModalBio"></p>
+    </div>
+  </div>
+
+  <script>
+    let allCharacters = [];
+    let currentTree = 'family';
+
+    // Захист від випадкового тапу під час свайпу/скролу на телефоні
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let didSwipe = false;
+
+    document.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      didSwipe = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10) {
+        didSwipe = true;
+      }
+    }, { passive: true });
+
+    const modal = document.getElementById('actorModal');
+    const modalTitle = document.getElementById('actorModalTitle');
+    const modalCharacter = document.getElementById('actorModalCharacter');
+    const modalBio = document.getElementById('actorModalBio');
+    const modalPhoto = document.getElementById('actorModalPhoto');
+
+    function openActorModal(char) {
+      const actor = char.actor || {};
+      const actorName = actor.name || char.actorName || 'Інформація про актора відсутня';
+      const actorBio = actor.bio || char.actorBio || 'Опис актора ще не додано в базу.';
+      const actorPhoto = actor.photo || char.actorPhoto || '';
+
+      modalTitle.textContent = actorName;
+      modalCharacter.textContent = char.name ? `Персонаж: ${char.name}` : '';
+      modalBio.textContent = actorBio;
+
+      if (actorPhoto) {
+        modalPhoto.src = actorPhoto;
+        modalPhoto.alt = actorName;
+        modalPhoto.style.display = 'block';
+      } else {
+        modalPhoto.removeAttribute('src');
+        modalPhoto.alt = '';
+        modalPhoto.style.display = 'none';
+      }
+
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeActorModal() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function init() {
+      try {
+        const response = await fetch('/api/characters');
+        allCharacters = await response.json();
+        renderTree(currentTree);
+      } catch (error) {
+        console.error('Помилка завантаження персонажів:', error);
+      }
+    }
+
+    function renderTree(treeType) {
+      const container = document.getElementById('tree-container');
+      const title = document.getElementById('tree-title');
+      
+      container.innerHTML = '';
+
+      title.textContent = treeType === 'family' 
+        ? "Родинне дерево сім'ї Сопрано" 
+        : "Ієрархія кримінальної сім'ї ДіМео";
+
+      const filteredChars = allCharacters.filter(c => {
+        if (Array.isArray(c.tree_type)) {
+          return c.tree_type.includes(treeType);
+        }
+        return c.tree_type === treeType;
+      });
+
+      const levels = [1, 2, 3, 4];
+
+      levels.forEach(level => {
+        const levelChars = filteredChars.filter(c => {
+          return treeType === 'family' ? c.generation === level : (c.crime_rank || c.generation) === level;
+        });
+
+        if (levelChars.length > 0) {
+          const row = document.createElement('div');
+          row.className = 'generation-row';
+
+          levelChars.forEach((char, index) => {
+            const roleText = treeType === 'crime' && char.crime_role ? char.crime_role : char.role;
+            const charId = char._id || `${treeType}-${level}-${index}-${char.name}`;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.tabIndex = 0;
+            card.setAttribute('role', 'button');
+            card.dataset.charId = charId;
+            card._charData = char;
+
+            card.innerHTML = `
+              <img src="${char.photo}" alt="${char.name}" onerror="this.src='https://via.placeholder.com/110?text=No+Photo'">
+              <h3>${char.name}</h3>
+              <span class="role">${roleText}</span>
+              <p>${char.description}</p>
+            `;
+
+            row.appendChild(card);
+          });
+
+          container.appendChild(row);
+        }
+      });
+    }
+
+    // Делегований клік по картках у дереві
+    document.getElementById('tree-container').addEventListener('click', (e) => {
+      if (didSwipe) {
+        didSwipe = false;
+        return;
+      }
+
+      const card = e.target.closest('.card');
+      if (!card || !card._charData) return;
+
+      openActorModal(card._charData);
+    });
+
+    // Підтримка відкриття з клавіатури (Enter / Space)
+    document.getElementById('tree-container').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.card');
+      if (!card || !card._charData) return;
+
+      e.preventDefault();
+      openActorModal(card._charData);
+    });
+
+    // Закриття модалки
+    modal.querySelectorAll('[data-close-modal]').forEach(el => {
+      el.addEventListener('click', closeActorModal);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+        closeActorModal();
+      }
+    });
+
+    document.querySelectorAll('.switch-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.switch-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        currentTree = button.getAttribute('data-type');
+        renderTree(currentTree);
+      });
+    });
+
+    init();
+  </script>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <a href="index.html" class="logo">
+          <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+          <span>ARCHIVE</span> 
+        </a>   
+        <p class="footer-note">
+          Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+        </p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Навігація у підвалі">
+        <a href="index.html">Головна</a>
+        <a href="tree.html">Дерево</a>
+        <a href="seasons.html">Сезони</a>
+        <a href="locations.html">Локації</a>
+        <a href="cars.html">Автопарк</a>
+        <a href="soundtrack.html">Саундтрек</a>
+        <a href="watches.html">Гардероб</a>
+      </nav>
+
+      <div class="footer-bottom">
+        <span>© 2026 Sopranos Archive</span>
+        <a href="#top" class="back-to-top">↑ Вгору</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Гардероб — Годинники персонажів</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link">Локації</a></li>
+          <li><a href="cars.html" class="nav-link">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link active">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="tree-header">
+      <h1>Гардероб персонажів: Годинники</h1>
+      <p class="section-subtitle">
+        Культові годинники ключових героїв серіалу: кадр із персонажем, окреме фото моделі, опис та орієнтовна вартість.
+      </p>
+    </div>
+
+    <div id="watches-container" class="wardrobe-grid"></div>
+  </main>
+
+  <script>
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let didSwipe = false;
+
+    document.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      didSwipe = false;
+    }, { passive: true });
+
+    document.addEventListener("touchmove", (e) => {
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10) {
+        didSwipe = true;
+      }
+    }, { passive: true });
+
+    function syncCardHeights(container) {
+      requestAnimationFrame(() => {
+        container.querySelectorAll(".wardrobe-card").forEach((card) => {
+          const inner = card.querySelector(".wardrobe-card-inner");
+          const front = card.querySelector(".wardrobe-front");
+          const back = card.querySelector(".wardrobe-back");
+          if (inner && front && back) {
+            const maxH = Math.max(front.scrollHeight, back.scrollHeight, 380);
+            inner.style.minHeight = `${maxH}px`;
+          }
+        });
+      });
+    }
+
+    function renderWatches(items) {
+      const container = document.getElementById("watches-container");
+      container.innerHTML = "";
+
+      if (!Array.isArray(items) || items.length === 0) {
+        container.innerHTML = '<p class="wardrobe-empty">Дані про годинники ще додаються.</p>';
+        return;
+      }
+
+      items.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "wardrobe-card";
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-pressed", "false");
+
+        const charImg = item.characterPhoto || "";
+        const watchImg = item.itemPhoto || "";
+        const characterName = item.character || "Персонаж не вказаний";
+
+        card.innerHTML = `
+          <div class="wardrobe-card-inner">
+            <div class="wardrobe-front">
+              <div class="wardrobe-photos">
+                <figure class="wardrobe-photo-box">
+                  <img
+                    src="${charImg}"
+                    alt="${item.character ? `${item.character} — ${item.title}` : item.title}"
+                    class="wardrobe-photo"
+                    onerror="this.src='https://via.placeholder.com/300x200?text=No+Character+Photo'"
+                  >
+                  <figcaption>Персонаж${item.character ? `: ${item.character}` : ""}</figcaption>
+                </figure>
+
+                <figure class="wardrobe-photo-box">
+                  <img
+                    src="${watchImg}"
+                    alt="${item.title}"
+                    class="wardrobe-photo"
+                    onerror="this.src='https://via.placeholder.com/300x200?text=No+Watch+Photo'"
+                  >
+                  <figcaption>Модель годинника</figcaption>
+                </figure>
+              </div>
+
+              <div class="wardrobe-info">
+                
+                <div class="wardrobe-header">
+                  <h2>${item.title}</h2>
+                  <span class="wardrobe-price">${item.price || "Ціна уточнюється"}</span>
+                  
+                </div>
+                <p class="wardrobe-desc">${item.description || ""}</p>
+                <span class="wardrobe-flip-hint">Натисніть, щоб перевернути →</span>
+              </div>
+            </div>
+
+            <div class="wardrobe-back">
+              <span class="wardrobe-back-label">Персонаж з годинником</span>
+              <img
+                src="${charImg}"
+                alt="${characterName}"
+                class="wardrobe-back-photo"
+                onerror="this.src='https://via.placeholder.com/320x240?text=No+Character+Photo'"
+              >
+              <div>
+                <h2 class="wardrobe-back-name">${characterName}</h2>
+                <p class="wardrobe-back-hint">Натисніть ще раз, щоб повернути картку</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+        function toggleFlip() {
+          const flipped = card.classList.toggle("is-flipped");
+          card.setAttribute("aria-pressed", String(flipped));
+        }
+
+        card.addEventListener("click", () => {
+          if (didSwipe) {
+            didSwipe = false;
+            return;
+          }
+          toggleFlip();
+        });
+
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleFlip();
+          }
+        });
+
+        container.appendChild(card);
+      });
+
+      syncCardHeights(container);
+    }
+
+    window.addEventListener("resize", () => {
+      const container = document.getElementById("watches-container");
+      if (container) syncCardHeights(container);
+    });
+
+    async function initWatches() {
+      try {
+        const response = await fetch("/api/watches");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        renderWatches(data);
+      } catch (err) {
+        console.error("Помилка завантаження годинників:", err);
+      }
+    }
+
+    initWatches();
+  </script>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <a href="index.html" class="logo">
+          <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+          <span>ARCHIVE</span>
+        </a>
+        <p class="footer-note">
+          Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+        </p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Навігація у підвалі">
+        <a href="index.html">Головна</a>
+        <a href="tree.html">Дерево</a>
+        <a href="seasons.html">Сезони</a>
+        <a href="locations.html">Локації</a>
+        <a href="cars.html">Автопарк</a>
+        <a href="soundtrack.html">Саундтрек</a>
+        <a href="watches.html">Гардероб</a>
+      </nav>
+
+      <div class="footer-bottom">
+        <span>© 2026 Sopranos Archive</span>
+        <a href="#top" class="back-to-top">↑ Вгору</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

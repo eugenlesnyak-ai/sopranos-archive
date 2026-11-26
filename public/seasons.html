@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сезони — Клан Сопрано</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="top">
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link active">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link">Локації</a></li>
+          <li><a href="cars.html" class="nav-link">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <h1>Сезони серіалу</h1>
+  <div id="seasons-container" class="seasons-grid"></div>
+
+  <script>
+    async function loadSeasons() {
+      try {
+        const response = await fetch('/api/seasons');
+        const seasons = await response.json();
+        const container = document.getElementById('seasons-container');
+
+        container.innerHTML = seasons.map(season => {
+          const episodesHtml = (season.episode_list && season.episode_list.length > 0)
+            ? season.episode_list.map((ep, index) => `
+                <li><span class="ep-num">${index + 1}.</span> ${ep}</li>
+              `).join('')
+            : '<li class="no-episodes">Список серій ще не додано</li>';
+
+          const watchBtnHtml = season.watch_url
+            ? `<a href="${season.watch_url}" target="_blank" rel="noopener noreferrer" class="watch-btn">▶ Дивитися сезон</a>`
+            : '';
+
+          return `
+            <article class="season-card">
+              <div class="season-main">
+                <img 
+                  src="${season.poster}" 
+                  alt="Сезон ${season.number}" 
+                  class="season-poster"
+                  onerror="this.src='https://via.placeholder.com/140x200?text=Season+${season.number}'"
+                >
+                <div class="season-info">
+                  <div class="season-header">
+                    <h2>Сезон ${season.number}</h2>
+                    <span class="year">${season.year}</span>
+                  </div>
+                  <p class="episodes-count">Кількість серій: ${season.episodes}</p>
+                  <p class="season-desc">${season.description}</p>
+                  
+                  <div class="season-actions">
+                    ${watchBtnHtml}
+                    <button 
+                      type="button" 
+                      class="episodes-toggle" 
+                      aria-expanded="false"
+                      aria-controls="episodes-panel-${season.number}"
+                    >
+                      <span>Список серій</span>
+                      <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Розгортуваний акордеон зі списком серій -->
+              <div class="episodes-accordion" id="episodes-panel-${season.number}">
+                <div class="episodes-accordion-inner">
+                  <h4>Серії ${season.number}-го сезону:</h4>
+                  <ul class="episodes-list">
+                    ${episodesHtml}
+                  </ul>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        // Делегування кліків для всіх кнопок акордеона
+        container.addEventListener('click', (e) => {
+          const toggleBtn = e.target.closest('.episodes-toggle');
+          if (!toggleBtn) return;
+
+          const card = toggleBtn.closest('.season-card');
+          const isOpen = card.classList.toggle('is-open');
+          toggleBtn.setAttribute('aria-expanded', String(isOpen));
+        });
+
+      } catch (error) {
+        console.error('Помилка завантаження сезонів:', error);
+      }
+    }
+
+    loadSeasons();
+  </script>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <a href="index.html" class="logo">
+          <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+          <span>ARCHIVE</span> 
+        </a>   
+        <p class="footer-note">
+          Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+        </p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Навігація у підвалі">
+        <a href="index.html">Головна</a>
+        <a href="tree.html">Дерево</a>
+        <a href="seasons.html">Сезони</a>
+        <a href="locations.html">Локації</a>
+        <a href="cars.html">Автопарк</a>
+        <a href="soundtrack.html">Саундтрек</a>
+        <a href="watches.html">Гардероб</a>
+      </nav>
+
+      <div class="footer-bottom">
+        <span>© 2026 Sopranos Archive</span>
+        <a href="#top" class="back-to-top">↑ Вгору</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

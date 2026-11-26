@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Автопарк — Клан Сопрано</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span>
+      </a>
+
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html" class="nav-link">Головна</a></li>
+          <li><a href="tree.html" class="nav-link">Родинне дерево</a></li>
+          <li><a href="seasons.html" class="nav-link">Сезони</a></li>
+          <li><a href="locations.html" class="nav-link">Локації</a></li>
+          <li><a href="cars.html" class="nav-link active">Автопарк</a></li>
+          <li><a href="soundtrack.html" class="nav-link">Саундтрек</a></li>
+          <li><a href="watches.html" class="nav-link">Гардероб</a></li>
+          <li><a href="#" class="nav-link soon" title="Розділ у розробці">Цитати <span class="badge">Скоро</span></a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="tree-header">
+    <h1>Автопарк клану Сопрано</h1>
+    <p class="section-subtitle">
+      Автомобіль у «Клані Сопрано» — це показник статусу, характеру та місця в ієрархії сім'ї.
+    </p>
+    
+    <!-- Фільтр за власниками -->
+    <div class="tree-switcher">
+      <button class="switch-btn active" data-category="all">Усі авто</button>
+      <button class="switch-btn" data-category="tony">Тоні Сопрано</button>
+      <button class="switch-btn" data-category="crew">Команда ДіМео</button>
+      <button class="switch-btn" data-category="family">Сім'я та інші</button>
+    </div>
+  </div>
+
+  <div id="cars-container" class="cars-grid"></div>
+
+  <script>
+    let allCars = [];
+
+    async function loadCars() {
+      try {
+        const response = await fetch('/api/cars');
+        allCars = await response.json();
+        renderCars('all');
+      } catch (error) {
+        console.error('Помилка завантаження автомобілів:', error);
+      }
+    }
+
+    function renderCars(category) {
+      const container = document.getElementById('cars-container');
+      container.innerHTML = '';
+
+      const filtered = category === 'all' 
+        ? allCars 
+        : allCars.filter(car => car.category === category);
+
+      filtered.forEach(car => {
+        container.innerHTML += `
+          <div class="car-card">
+            <div class="car-image-wrapper">
+              <img 
+                src="${car.photo}" 
+                alt="${car.model}" 
+                class="car-photo"
+                onerror="this.src='https://via.placeholder.com/400x220?text=No+Car+Photo'"
+              >
+              ${car.seasons ? `<span class="car-seasons-badge">${car.seasons}</span>` : ''}
+            </div>
+            <div class="car-info">
+              <h2>${car.model}</h2>
+              <span class="car-owner">Власник: ${car.owner}</span>
+              <p class="car-desc">${car.description}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Перемикання фільтрів
+    document.querySelectorAll('.switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderCars(btn.getAttribute('data-category'));
+      });
+    });
+
+    loadCars();
+  </script>
+  
+  <footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">
+        <img src="Sopranos.svg" alt="The Sopranos" class="logo-img">
+        <span>ARCHIVE</span> 
+      </a>   
+        <p class="footer-note">
+        Некомерційний фанатський архів. Усі права на оригінальний серіал та матеріали належать їхнім правовласникам.
+      </p>
+    </div>
+
+    <nav class="footer-nav" aria-label="Навігація у підвалі">
+      <a href="index.html">Головна</a>
+      <a href="tree.html">Дерево</a>
+      <a href="seasons.html">Сезони</a>
+      <a href="locations.html">Локації</a>
+      <a href="cars.html">Автопарк</a>
+      <a href="soundtrack.html">Саундтрек</a>
+      <a href="watches.html">Гардероб</a>
+    </nav>
+
+    <div class="footer-bottom">
+      <span>© 2026 Sopranos Archive</span>
+      <a href="#top" class="back-to-top">↑ Вгору</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
